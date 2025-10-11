@@ -1,8 +1,13 @@
+"""
+WSGI config for freakfitapp project.
+"""
+
 import os
 from django.core.wsgi import get_wsgi_application
-from mangum import Mangum
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "freakfit.settings")
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'freakfit.settings')
 
 application = get_wsgi_application()
-handler = Mangum(application)  # <-- Vercel expects `handler`
+
+
+
