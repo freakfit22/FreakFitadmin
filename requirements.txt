@@ -16,4 +16,7 @@ boto3==1.35.46
 django-storages==1.14.4
 twilio==9.3.7
 dotenv==0.9.9
+python-decouple==4.8.0
+mangum==1.2.0
+
 
