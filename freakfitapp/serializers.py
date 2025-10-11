@@ -1,0 +1,155 @@
+from rest_framework import serializers
+from .models import Banner, Offer, Zyrax_Class, UserProfile, CommunityPost, PostImage, Comment, Tutors, Service_Post, \
+    Attendance, UserAdditionalInfo, ZyraxTestimonial, CallbackRequest, PatymentRecord, UserMembership, Video, FAQ, \
+    Rating
+from django.contrib.auth.models import User
+
+
+class BannerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Banner
+        fields = ['id', 'title', 'image', 'description']
+
+
+class ZyraxTestionialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ZyraxTestimonial
+        fields = ['id', 'title', 'image', 'description']
+
+
+class CallbackRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CallbackRequest
+        fields = ['id', 'name', 'email', 'phone', 'message', 'preferred_callback_time', 'created_at']
+
+
+class OfferSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Offer
+        fields = ['id', 'title', 'amount', 'discount', 'duration', 'description', 'is_active']
+
+
+class ClassSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Zyrax_Class
+        fields = '__all__'
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_of_birth']
+
+
+class TutorProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tutors
+        fields = ['first_name', 'last_name', 'image', 'video_link', 'description']
+
+
+class UserSerializer(serializers.ModelSerializer):
+    profile = UserProfileSerializer()  # Nested UserProfile
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'password', 'profile']
+        extra_kwargs = {'password': {'write_only': True}}  # Password should be write-only
+
+    def create(self, validated_data):
+        profile_data = validated_data.pop('profile')
+        user = User(**validated_data)
+        user.set_password(validated_data['password'])  # Hash the password
+        user.save()
+        UserProfile.objects.create(user=user, **profile_data)  # Create UserProfile
+        return user
+
+
+
+
+class PostImageSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(use_url=True)  # Ensures full URL is returned
+
+    class Meta:
+        model = PostImage
+        fields = ['id', 'image']
+
+
+class CommunityPostSerializer(serializers.ModelSerializer):
+    images = PostImageSerializer(many=True, read_only=True)  # ✅ no 'serializers.' prefix
+
+    class Meta:
+        model = CommunityPost
+        fields = ['id', 'user', 'content', 'images', 'created_at']
+
+
+
+# Comment Serializer
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment  # Correct model reference
+        fields = ['id', 'post', 'user', 'content', 'created_at']
+
+
+class ServicePostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service_Post
+        fields = ['id', 'title', 'image', 'description', 'offer']
+
+
+class AttendanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Attendance
+        fields = ['id', 'user', 'date', 'created_at']
+        read_only_fields = ['user', 'created_at']
+
+
+class UserSerialize(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email']
+
+
+class UserAdditionalInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserAdditionalInfo
+        fields = ['profile_picture', 'height', 'weight', 'gender', 'address']
+
+
+class FullUserProfileSerializer(serializers.ModelSerializer):
+    user = UserSerialize()
+    additional_info = UserAdditionalInfoSerializer(read_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = ['user', 'first_name', 'last_name', 'phone_number', 'date_of_birth', 'additional_info']
+
+
+class TransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PatymentRecord
+        fields = '__all__'
+
+
+class UserMembershipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserMembership
+        fields = '__all__'
+
+
+class VideoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Video
+        fields = '__all__'
+
+
+class FAQSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FAQ
+        fields = ['id', 'question', 'answer', 'created_at']
+
+
+class RatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rating
+        fields = ['id', 'user', 'score', 'description', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
