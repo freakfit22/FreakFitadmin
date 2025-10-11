@@ -80,7 +80,7 @@ else:
                     'ENGINE': 'django.db.backends.postgresql',
                     'NAME': 'railway',
                     'USER': 'postgres',
-                    'PASSWORD': 'NzcLkIPdsSBsaUcMwDWZRidfCclLGZbm',
+                    'PASSWORD': 'ondpMnlYhISSKWVwaGqcrFtbsqKypTmt',
                     'HOST': 'postgres.railway.internal',
                     'PORT': '5432',
                     'CONN_MAX_AGE': 60,
