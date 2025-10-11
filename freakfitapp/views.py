@@ -86,7 +86,7 @@ def send_otp(phone_number):
         # Send OTP using Twilio Verify API (without custom code)
         verification = client.verify \
             .v2 \
-            .services(ZYRAX_VERIFY_SERVICE_SID) \
+            .services(FREAKFITADMIN_VERIFY_SERVICE_SID) \
             .verifications \
             .create(to=phone_number, channel='sms')
 
@@ -207,7 +207,7 @@ def verify_otp(request):
     try:
         verification_check = client.verify \
             .v2 \
-            .services(ZYRAX_VERIFY_SERVICE_SID) \
+            .services(FREAKFITADMIN_VERIFY_SERVICE_SID) \
             .verification_checks \
             .create(to=phone_number, code=otp_entered)
 
@@ -767,7 +767,7 @@ def reset_password(request):
         # Verify OTP using Twilio Verify API
         verification_check = client.verify \
             .v2 \
-            .services(ZYRAX_VERIFY_SERVICE_SID) \
+            .services(FREAKFITADMIN_VERIFY_SERVICE_SID) \
             .verification_checks \
             .create(to=phone_number, code=otp)
 
