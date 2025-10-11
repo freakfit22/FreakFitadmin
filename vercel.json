@@ -1,14 +1,15 @@
 {
   "version": 2,
   "builds": [
-    { "src": "freakfit/wsgi.py", "use": "@vercel/python" }
+    {
+      "src": "freakfit/wsgi.py",
+      "use": "@vercel/python"
+    }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "freakfit/wsgi.py" }
-  ],
-  "functions": {
-    "freakfit/wsgi.py": {
-      "runtime": "python3.9"
+    {
+      "src": "/(.*)",
+      "dest": "freakfit/wsgi.py"
     }
-  }
+  ]
 }
