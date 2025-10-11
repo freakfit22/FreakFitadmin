@@ -1,19 +1,14 @@
 {
   "version": 2,
   "builds": [
-    {
-      "src": "freakfit/wsgi.py",
-      "use": "@vercel/python"
-    }
+    { "src": "freakfit/wsgi.py", "use": "@vercel/python" }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "freakfit/wsgi.py"
-    }
+    { "src": "/(.*)", "dest": "freakfit/wsgi.py" }
   ],
-  "build": {
-    "installCommand": "pip install -r requirements.txt",
-    "buildCommand": "python manage.py collectstatic --noinput"
+  "functions": {
+    "freakfit/wsgi.py": {
+      "runtime": "python3.9"
+    }
   }
 }
