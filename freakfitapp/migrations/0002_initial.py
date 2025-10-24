@@ -117,35 +117,6 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='Zyrax_Class',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('time', models.TimeField()),
-                ('duration', models.PositiveIntegerField()),
-                ('zoom_link', models.URLField()),
-                ('class_date', models.DateField()),
-            ],
-            options={
-                'verbose_name': 'Classes',
-                'verbose_name_plural': 'Classes',
-            },
-        ),
-        migrations.CreateModel(
-            name='ZyraxTestimonial',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('image', models.ImageField(upload_to='testimonials/')),
-                ('description', models.TextField()),
-                ('tag', models.CharField(blank=True, max_length=100, null=True)),
-            ],
-            options={
-                'verbose_name': 'Testimonials',
-                'verbose_name_plural': 'Testimonials',
-            },
-        ),
-        migrations.CreateModel(
             name='UserProfile',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
