@@ -31,6 +31,7 @@ from .views import (
     get_all_videos,
     get_all_faqs,
     create_rating,
+    CreateRazorpayOrder,
 
 )
 
@@ -67,5 +68,6 @@ urlpatterns = [
     path('videoUrl/', get_all_videos, name='get-all-videos'),  # List and Create
     path('faq/', get_all_faqs, name='get-all-faqs'),
     path('ratings/create/', create_rating, name='create_rating'),  # Create rating
+    path('create-order/', CreateRazorpayOrder.as_view(), name='create-order'),
 
 ]

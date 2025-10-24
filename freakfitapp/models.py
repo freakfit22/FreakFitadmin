@@ -15,7 +15,7 @@ class Banner(models.Model):
     def __str__(self):
         return self.title
 
-class ZyraxTestimonial(models.Model):
+class Testimonial(models.Model):
     title = models.CharField(max_length=255)
     image = models.ImageField(upload_to='testimonials/')
     description = models.TextField()
@@ -93,7 +93,7 @@ class Comment(models.Model):
         return f"Comment by {self.user.username} on post {self.post.id}"
 
 
-class Zyrax_Class(models.Model):
+class Class(models.Model):
     title = models.CharField(max_length=255)
     time = models.TimeField()
     duration = models.PositiveIntegerField()  # duration in minutes
@@ -299,3 +299,19 @@ class Rating(models.Model):
 
     def __str__(self):
         return f"{self.user.username} rated {self.score} - {self.description[:20]}"
+
+
+
+
+
+class RazorpayOrder(models.Model):
+    order_id = models.CharField(max_length=100)
+    amount = models.IntegerField()
+    currency = models.CharField(max_length=10)
+    receipt = models.CharField(max_length=100)
+    offer = models.ForeignKey(Offer, on_delete=models.SET_NULL, null=True, blank=True)
+    profile = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.order_id

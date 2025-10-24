@@ -1,18 +1,24 @@
+import hashlib
+import hmac
+import uuid
 from datetime import datetime, timedelta
 import logging
+
+import razorpay
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.template.defaulttags import now
 from django.utils.dateparse import parse_datetime
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.response import Response
-from rest_framework import status, viewsets, permissions, generics
+from rest_framework import status, viewsets, permissions, generics, settings
 from rest_framework.views import APIView
 from django.contrib.auth.hashers import make_password
 from django.contrib import messages
 from django import forms
-from .models import Banner, Offer, CommunityPost, PostImage, Comment, UserProfile, Zyrax_Class, Tutors, Service_Post, \
-    Attendance, UserAdditionalInfo, ZyraxTestimonial, CallbackRequest, UserMembership, PatymentRecord, Video, FAQ, Rating
+from .models import Banner, Offer, CommunityPost, PostImage, Comment, UserProfile, Class, Tutors, Service_Post, \
+    Attendance, UserAdditionalInfo, Testimonial, CallbackRequest, UserMembership, PatymentRecord, Video, FAQ, \
+    Rating, RazorpayOrder
 from .serializers import BannerSerializer, OfferSerializer, CommunityPostSerializer, PostImageSerializer, \
     CommentSerializer, ClassSerializer, TutorProfileSerializer, ServicePostSerializer, AttendanceSerializer, \
     FullUserProfileSerializer, UserAdditionalInfoSerializer, ZyraxTestionialSerializer, CallbackRequestSerializer,VideoSerializer, \
@@ -28,6 +34,7 @@ from django.utils import timezone
 from twilio.rest import Client
 import os
 from dotenv import load_dotenv
+from django.conf import settings
 
 
 load_dotenv()
@@ -139,7 +146,7 @@ def callback_request(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_testimonials(request):
-    testimonial = ZyraxTestimonial.objects.all()
+    testimonial = Testimonial.objects.all()
     serializer = ZyraxTestionialSerializer(testimonial, many=True)
     return Response(serializer.data)
 
@@ -156,7 +163,7 @@ def get_offers(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_classes(request):
-    classes = Zyrax_Class.objects.all()
+    classes = Class.objects.all()
     serializer = ClassSerializer(classes, many=True)
     return Response(serializer.data)
 
@@ -399,7 +406,7 @@ class AttendanceViewSet(viewsets.ViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'], url_path='monthly_attendance/(?P<user_id>[^/.]+)')
-    def monthly_attendance(self, request, user_id=None):
+    def monthly_attendance(self, request, user_id=None, status=None):
         """
         Retrieve monthly attendance for a specific user to show on a calendar.
         """
@@ -556,82 +563,155 @@ def create_subscription(request):
                     status=status.HTTP_201_CREATED)
 
 
+#
+# @api_view(["POST"])
+# def verify_and_subscribe(request):
+#     phone_number = request.data.get("phone_number")
+#     user_id = request.data.get("user_id")
+#     offer_id = request.data.get("offer_id")
+#
+#     if not phone_number or not user_id or not offer_id:
+#         return Response(
+#             {"error": "phone_number, user_id, and offer_id are required"},
+#             status=status.HTTP_400_BAD_REQUEST
+#         )
+#
+#     # Verify latest successful payment
+#     transaction = PatymentRecord.objects.filter(
+#         phone=phone_number, status="success"
+#     ).order_by("-addedon").first()
+#
+#     if not transaction:
+#         return Response(
+#             {"error": "No successful payment found for this phone number"},
+#             status=status.HTTP_404_NOT_FOUND
+#         )
+#
+#     # Get user and offer
+#     user = get_object_or_404(User, id=user_id)
+#     offer = get_object_or_404(Offer, id=offer_id)
+#
+#     # Calculate new subscription dates
+#     start_date = timezone.now()
+#     end_date = start_date + timedelta(days=offer.duration)
+#
+#     # Check if the user already has a subscription (active or inactive)
+#     subscription = UserMembership.objects.filter(user=user).first()
+#
+#     if subscription:
+#         # Update existing subscription
+#         subscription.start_date = start_date
+#         subscription.end_date = end_date
+#         subscription.transaction_id = transaction.txnid
+#         subscription.amount_paid = offer.amount  # Overwrite previous payment amount
+#         subscription.is_active = True  # Ensure it's active
+#         subscription.save()
+#         message = "Subscription updated successfully"
+#     else:
+#         # Create a new subscription if none exists
+#         subscription = UserMembership.objects.create(
+#             user=user,
+#             offer=offer,
+#             transaction_id=transaction.txnid,
+#             amount_paid=offer.amount,
+#             start_date=start_date,
+#             end_date=end_date,
+#             is_active=True
+#         )
+#         message = "Subscription created successfully"
+#
+#     # Serialize subscription data
+#     subscription_data = {
+#         "subscription_id": subscription.id,
+#         "user_id": subscription.user.id,
+#         "offer_id": subscription.offer.id,
+#         "transaction_id": subscription.transaction_id,
+#         "amount_paid": str(subscription.amount_paid),
+#         "start_date": subscription.start_date.strftime("%Y-%m-%d"),
+#         "end_date": subscription.end_date.strftime("%Y-%m-%d"),
+#         "is_active": subscription.is_active
+#     }
+#
+#     return Response(
+#         {
+#             "message": message,
+#             "subscription": subscription_data
+#         },
+#         status=status.HTTP_200_OK
+#     )
+
+
 
 @api_view(["POST"])
 def verify_and_subscribe(request):
-    phone_number = request.data.get("phone_number")
-    user_id = request.data.get("user_id")
+    razorpay_payment_id = request.data.get("razorpay_payment_id")
+    razorpay_order_id = request.data.get("razorpay_order_id")
+    razorpay_signature = request.data.get("razorpay_signature")
     offer_id = request.data.get("offer_id")
+    user_id = request.data.get("user_id")
+    phone_number = request.data.get("phone_number")
 
-    if not phone_number or not user_id or not offer_id:
+    if not all([razorpay_payment_id, razorpay_order_id, razorpay_signature, offer_id, user_id, phone_number]):
         return Response(
-            {"error": "phone_number, user_id, and offer_id are required"},
+            {"error": "Missing required fields."},
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Verify latest successful payment
-    transaction = PatymentRecord.objects.filter(
-        phone=phone_number, status="success"
-    ).order_by("-addedon").first()
+    # Step 1: Verify Razorpay Signature
+    generated_signature = hmac.new(
+        key=bytes(settings.RAZORPAY_KEY_SECRET, 'utf-8'),
+        msg=bytes(f"{razorpay_order_id}|{razorpay_payment_id}", 'utf-8'),
+        digestmod=hashlib.sha256
+    ).hexdigest()
 
-    if not transaction:
+    if generated_signature != razorpay_signature:
         return Response(
-            {"error": "No successful payment found for this phone number"},
-            status=status.HTTP_404_NOT_FOUND
+            {"error": "Invalid payment signature."},
+            status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Get user and offer
+    # Step 2: Fetch user and offer
     user = get_object_or_404(User, id=user_id)
     offer = get_object_or_404(Offer, id=offer_id)
 
-    # Calculate new subscription dates
+    # Step 3: Create or update subscription
     start_date = timezone.now()
     end_date = start_date + timedelta(days=offer.duration)
 
-    # Check if the user already has a subscription (active or inactive)
-    subscription = UserMembership.objects.filter(user=user).first()
+    subscription, created = UserMembership.objects.get_or_create(user=user, defaults={
+        "offer": offer,
+        "transaction_id": razorpay_payment_id,
+        "amount_paid": offer.amount,
+        "start_date": start_date,
+        "end_date": end_date,
+        "is_active": True
+    })
 
-    if subscription:
+    if not created:
         # Update existing subscription
+        subscription.offer = offer
+        subscription.transaction_id = razorpay_payment_id
+        subscription.amount_paid = offer.amount
         subscription.start_date = start_date
         subscription.end_date = end_date
-        subscription.transaction_id = transaction.txnid
-        subscription.amount_paid = offer.amount  # Overwrite previous payment amount
-        subscription.is_active = True  # Ensure it's active
+        subscription.is_active = True
         subscription.save()
-        message = "Subscription updated successfully"
-    else:
-        # Create a new subscription if none exists
-        subscription = UserMembership.objects.create(
-            user=user,
-            offer=offer,
-            transaction_id=transaction.txnid,
-            amount_paid=offer.amount,
-            start_date=start_date,
-            end_date=end_date,
-            is_active=True
-        )
-        message = "Subscription created successfully"
 
-    # Serialize subscription data
-    subscription_data = {
-        "subscription_id": subscription.id,
-        "user_id": subscription.user.id,
-        "offer_id": subscription.offer.id,
-        "transaction_id": subscription.transaction_id,
-        "amount_paid": str(subscription.amount_paid),
-        "start_date": subscription.start_date.strftime("%Y-%m-%d"),
-        "end_date": subscription.end_date.strftime("%Y-%m-%d"),
-        "is_active": subscription.is_active
-    }
+    return Response({
+        "message": "Subscription activated successfully",
+        "subscription_id": subscription.id
+    }, status=status.HTTP_200_OK)
 
-    return Response(
-        {
-            "message": message,
-            "subscription": subscription_data
-        },
-        status=status.HTTP_200_OK
-    )
+
+
+
+
+
+
+
+
+
+
 
 
 def normalize_phone_number(phone: str) -> str:
@@ -856,3 +936,55 @@ def create_rating(request):
     )
     serializer = RatingSerializer(rating)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+
+
+
+class CreateRazorpayOrder(APIView):
+    permission_classes = [AllowAny]  # Or use IsAuthenticated if required
+
+    def post(self, request):
+        amount = int(request.data.get('amount'))
+        offer_id = request.data.get('offer_id')
+
+        profile = None
+        if request.user and request.user.is_authenticated:
+            try:
+                profile = UserProfile.objects.get(user=request.user)
+            except UserProfile.DoesNotExist:
+                return Response({"error": "User profile not found."}, status=404)
+
+        try:
+            offer = Offer.objects.get(id=offer_id)
+        except Offer.DoesNotExist:
+            return Response({"error": "Offer not found."}, status=404)
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+        receipt_id = str(uuid.uuid4())
+        order_data = {
+            "amount": amount * 100,
+            "currency": "INR",
+            "receipt": receipt_id,
+            "payment_capture": 1
+        }
+
+        order = client.order.create(data=order_data)
+
+        RazorpayOrder.objects.create(
+            order_id=order["id"],
+            amount=order_data["amount"],
+            currency=order_data["currency"],
+            receipt=order_data["receipt"],
+            offer=offer,
+            profile=profile
+        )
+
+        return Response({
+            "order_id": order["id"],
+            "razorpay_key": settings.RAZORPAY_KEY_ID,
+            "amount": order_data["amount"],
+            "currency": "INR",
+            "offer_id": offer.id,
+            "profile_id": profile.id if profile else None
+        })

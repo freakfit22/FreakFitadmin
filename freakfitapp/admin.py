@@ -2,9 +2,20 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from django import forms
 from django.utils.timezone import now
-from .models import Banner, Offer, CommunityPost, PostImage, Comment, UserProfile, Zyrax_Class, Tutors, Service_Post, \
-    ZyraxTestimonial, CallbackRequest, PatymentRecord, UserMembership, ActiveUserMembership, InactiveUserMembership, \
-    Video, FAQ, Rating
+from .models import Banner, Offer, CommunityPost, PostImage, Comment, UserProfile, Class, Tutors, Service_Post, \
+    Testimonial, CallbackRequest, PatymentRecord, UserMembership, ActiveUserMembership, InactiveUserMembership, \
+    Video, FAQ, Rating, RazorpayOrder
+
+
+from django.contrib import admin
+
+admin.site.site_header = "FreakFit"
+
+admin.site.site_title = "FreakFit"
+
+admin.site.index_title = "Welcome to Our FreakFit Admin"
+
+admin.site.register(RazorpayOrder)
 
 
 # Custom user creation form
@@ -54,12 +65,12 @@ class OfferAdmin(admin.ModelAdmin):
     list_display = (
         'title', 'amount', 'discount', 'duration', 'is_active')  # Ensure 'is_active' is a field in the Zylo_Offer model
 
-@admin.register(ZyraxTestimonial)
-class ZyraxTestimonialAsmin(admin.ModelAdmin):
+@admin.register(Testimonial)
+class TestimonialAsmin(admin.ModelAdmin):
     list_display = ('title', 'description')
 
 
-@admin.register(Zyrax_Class)
+@admin.register(Class)
 class ClassAdmin(admin.ModelAdmin):
     list_display = ('title', 'time', 'duration', 'zoom_link', 'class_date')
 
