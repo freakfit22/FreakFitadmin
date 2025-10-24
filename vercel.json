@@ -3,10 +3,7 @@
   "builds": [
     {
       "src": "freakfit/wsgi.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
+      "use": "@vercel/python"
     }
   ],
   "routes": [
@@ -14,8 +11,5 @@
       "src": "/(.*)",
       "dest": "freakfit/wsgi.py"
     }
-  ],
-  "hooks": {
-    "build": "python manage.py collectstatic --noinput"
-  }
+  ]
 }
